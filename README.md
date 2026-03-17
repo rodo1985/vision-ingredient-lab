@@ -54,6 +54,23 @@ uv run pytest
 uv run ruff check .
 ```
 
+## API overview
+
+- `GET /health`: basic service health check.
+- `GET /api/images`: list stored metadata rows from the CSV repository.
+- `GET /api/search?query=tomato`: search metadata by keyword and description terms.
+- `POST /api/generate`: build a prompt from selected ingredients and request a creative image.
+
+Example generation request:
+
+```json
+{
+  "selected_ingredients": ["tomato", "mozzarella", "basil"],
+  "base_style": "editorial food photography",
+  "creativity": 0.7
+}
+```
+
 ## Configuration
 
 The backend reads configuration from environment variables and optionally a local `.env` file.
@@ -81,7 +98,7 @@ docs/
 
 - On startup, the backend attempts to scan `IMAGE_DATASET_DIR` and enrich only images that are not yet present in `METADATA_CSV_PATH`.
 - Startup enrichment is skipped when the dataset directory does not exist or `OPENAI_API_KEY` is not configured.
-- Metadata search currently works in the service layer and is ready to be connected to API endpoints next.
+- Search and generation are exposed through the FastAPI routes and covered by tests.
 
 ## Planning
 
