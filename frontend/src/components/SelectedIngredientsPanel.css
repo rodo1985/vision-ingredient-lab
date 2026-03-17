@@ -1,0 +1,131 @@
+.selected-panel {
+  background: #fffaf5;
+  border: 1px solid #f4d0a9;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 40px rgba(60, 40, 20, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.selected-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.selected-panel__label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.75rem;
+  color: #b36b00;
+  margin-bottom: 0.2rem;
+}
+
+.selected-panel__title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #3a1c00;
+}
+
+.selected-panel__helper {
+  margin: 0.4rem 0 0;
+  color: #6c4b2a;
+  max-width: 24rem;
+}
+
+.selected-panel__clear {
+  background: transparent;
+  border: 1px solid #3a1c00;
+  color: #3a1c00;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.selected-panel__clear:hover {
+  background: #3a1c00;
+  color: #fff3e8;
+}
+
+.selected-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.selected-panel__card {
+  background: #fff;
+  border: 1px solid #f0d5b1;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 10px 20px rgba(40, 28, 8, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.selected-panel__ingredient-name {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #2c1a00;
+}
+
+.selected-panel__ingredient-description {
+  margin: 0;
+  color: #5b4220;
+  font-size: 0.95rem;
+}
+
+.selected-panel__keyword-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.selected-panel__keyword {
+  background: #fff2da;
+  color: #b25900;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  border: 1px solid rgba(178, 89, 0, 0.4);
+}
+
+.selected-panel__remove {
+  align-self: flex-end;
+  background: #ff7f4f;
+  border: none;
+  color: white;
+  border-radius: 8px;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.selected-panel__empty {
+  margin: 0;
+  color: #5d4021;
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .selected-panel__header {
+    flex-direction: column;
+  }
+
+  .selected-panel__clear,
+  .selected-panel__remove {
+    width: 100%;
+  }
+
+  .selected-panel__remove {
+    align-self: stretch;
+  }
+}
