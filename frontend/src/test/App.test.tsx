@@ -31,5 +31,6 @@ describe("App", () => {
       screen.getByRole("heading", { name: /curate your component list/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /generated result/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /generate image/i })).toBeDisabled();
   });
 });

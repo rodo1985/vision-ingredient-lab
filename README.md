@@ -1,6 +1,6 @@
 # vision-ingredient-lab
 
-Vision Ingredient Lab is a toy full-stack application for exploring ingredient imagery with AI. The backend scans a local image library, generates descriptions and keywords for new files, and stores metadata in CSV. The frontend already supports ingredient search, result browsing, and selection so the creative generation flow can be layered on top next.
+Vision Ingredient Lab is a toy full-stack application for exploring ingredient imagery with AI. The backend scans a local image library, generates descriptions and keywords for new files, and stores metadata in CSV. The frontend now supports ingredient search, result browsing, selection, and a generation flow that requests a combined creative image from the backend.
 
 ## What this repo is
 - A Python backend for local image ingestion, metadata enrichment, and search/generation APIs.
@@ -16,7 +16,7 @@ Vision Ingredient Lab is a toy full-stack application for exploring ingredient i
 - Exposes FastAPI endpoints for metadata search and image generation.
 - Builds creative prompts from selected ingredients.
 - Uses OpenAI models for vision tagging and image generation.
-- Provides a frontend search panel, results grid, and selected ingredient panel backed by shared state.
+- Provides a frontend search panel, results grid, selected ingredient panel, and generated result display backed by shared state.
 - Keeps backend and frontend work separated by area.
 - Does not yet include production deployment, authentication, or a persistent database.
 

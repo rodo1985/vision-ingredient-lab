@@ -92,6 +92,14 @@ describe("ingredientReducer", () => {
     expect(next.generationStatus).toBe("loading");
   });
 
+  it("stores generation errors", () => {
+    const next = ingredientReducer(initialIngredientState, {
+      type: "setGenerationError",
+      payload: "Generation failed",
+    });
+    expect(next.generationError).toBe("Generation failed");
+  });
+
   it("stores generated result", () => {
     const next = ingredientReducer(initialIngredientState, {
       type: "setGeneratedResult",

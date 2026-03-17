@@ -77,3 +77,14 @@
   cursor: not-allowed;
   color: #6b6b7b;
 }
+
+@media (max-width: 640px) {
+  .search-results__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-results__select {
+    align-self: stretch;
+    width: 100%;
+  }
+}

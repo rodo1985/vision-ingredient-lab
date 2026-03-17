@@ -32,6 +32,7 @@ export interface IngredientState {
   searchStatus: SearchStatus;
   searchError: string | null;
   generationStatus: GenerationStatus;
+  generationError: string | null;
   generatedResult: GeneratedResult | null;
 }
 
@@ -42,6 +43,7 @@ export const initialIngredientState: IngredientState = {
   searchStatus: "idle",
   searchError: null,
   generationStatus: "idle",
+  generationError: null,
   generatedResult: null,
 };
 
@@ -55,6 +57,7 @@ export type IngredientAction =
   | { type: "removeIngredient"; payload: string }
   | { type: "clearSelection" }
   | { type: "setGenerationStatus"; payload: GenerationStatus }
+  | { type: "setGenerationError"; payload: string | null }
   | { type: "setGeneratedResult"; payload: GeneratedResult | null }
   | { type: "resetGeneratedResult" };
 
@@ -101,6 +104,8 @@ export function ingredientReducer(
       return { ...state, selectedIngredients: [] };
     case "setGenerationStatus":
       return { ...state, generationStatus: action.payload };
+    case "setGenerationError":
+      return { ...state, generationError: action.payload };
     case "setGeneratedResult":
       return { ...state, generatedResult: action.payload };
     case "resetGeneratedResult":

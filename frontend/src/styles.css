@@ -242,6 +242,10 @@ select {
   line-height: 1.65;
 }
 
+.workspace-panel__copy {
+  margin-top: 0;
+}
+
 @keyframes float-up {
   from {
     opacity: 0;

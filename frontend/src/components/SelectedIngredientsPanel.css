@@ -114,3 +114,18 @@
   color: #5d4021;
   font-style: italic;
 }
+
+@media (max-width: 640px) {
+  .selected-panel__header {
+    flex-direction: column;
+  }
+
+  .selected-panel__clear,
+  .selected-panel__remove {
+    width: 100%;
+  }
+
+  .selected-panel__remove {
+    align-self: stretch;
+  }
+}

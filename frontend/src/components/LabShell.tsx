@@ -1,9 +1,12 @@
 import type {
+  GeneratedResult,
   GenerationStatus,
   IngredientResult,
   SearchStatus,
 } from "../state/ingredientState";
 
+import { GenerateImagePanel } from "./GenerateImagePanel";
+import { GeneratedResultPanel } from "./GeneratedResultPanel";
 import { IngredientSearchPanel } from "./IngredientSearchPanel";
 import { SearchResultsGrid } from "./SearchResultsGrid";
 import { SelectedIngredientsPanel } from "./SelectedIngredientsPanel";
@@ -60,6 +63,9 @@ type LabShellProps = {
   selectedCount: number;
   resultCount: number;
   generationStatus: GenerationStatus;
+  generationError: string | null;
+  generatedResult: GeneratedResult | null;
+  onGenerateImage: () => void;
 };
 
 /**
@@ -86,6 +92,9 @@ export function LabShell({
   selectedCount,
   resultCount,
   generationStatus,
+  generationError,
+  generatedResult,
+  onGenerateImage,
 }: LabShellProps) {
   const selectedIds = selectedIngredients.map((ingredient) => ingredient.id);
 
@@ -158,11 +167,21 @@ export function LabShell({
           />
         </article>
 
-        <article className="workspace-panel" key={upcomingPanels[2].title}>
+        <article className="workspace-panel workspace-panel--stacked" key={upcomingPanels[2].title}>
           <div className="workspace-panel__glow" />
-          <p className="workspace-panel__kicker">Planned surface</p>
+          <p className="workspace-panel__kicker">Generated result</p>
           <h2>{upcomingPanels[2].title}</h2>
-          <p>{upcomingPanels[2].copy}</p>
+          <p className="workspace-panel__copy">{upcomingPanels[2].copy}</p>
+          <GenerateImagePanel
+            selectedIngredients={selectedIngredients}
+            generationStatus={generationStatus}
+            onGenerate={onGenerateImage}
+          />
+          <GeneratedResultPanel
+            generationStatus={generationStatus}
+            generationError={generationError}
+            generatedResult={generatedResult}
+          />
         </article>
       </section>
     </main>

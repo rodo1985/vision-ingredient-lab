@@ -70,6 +70,34 @@ function AppContent() {
     };
   }, [dispatch, state.query]);
 
+  async function handleGenerate() {
+    if (state.selectedIngredients.length < 2) {
+      dispatch({
+        type: "setGenerationError",
+        payload: "Select at least two ingredients before generating an image.",
+      });
+      dispatch({ type: "setGenerationStatus", payload: "error" });
+      return;
+    }
+
+    dispatch({ type: "setGenerationStatus", payload: "loading" });
+    dispatch({ type: "setGenerationError", payload: null });
+    dispatch({ type: "setGeneratedResult", payload: null });
+
+    try {
+      const result = await defaultApiClient.generateImage({
+        ingredients: state.selectedIngredients.map((ingredient) => ingredient.name),
+      });
+      dispatch({ type: "setGeneratedResult", payload: result });
+      dispatch({ type: "setGenerationStatus", payload: "success" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to generate an ingredient image.";
+      dispatch({ type: "setGenerationError", payload: message });
+      dispatch({ type: "setGenerationStatus", payload: "error" });
+    }
+  }
+
   return (
     <LabShell
       query={state.query}
@@ -86,6 +114,9 @@ function AppContent() {
       selectedCount={state.selectedIngredients.length}
       resultCount={state.results.length}
       generationStatus={state.generationStatus}
+      generationError={state.generationError}
+      generatedResult={state.generatedResult}
+      onGenerateImage={handleGenerate}
     />
   );
 }

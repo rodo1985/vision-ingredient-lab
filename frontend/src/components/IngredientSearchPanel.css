@@ -81,3 +81,10 @@
   color: #8a3024;
   line-height: 1.5;
 }
+
+@media (max-width: 640px) {
+  .search-panel__status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
