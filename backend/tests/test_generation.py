@@ -44,3 +44,5 @@ def test_build_generation_prompt_uses_selected_ingredients():
     )
     assert "tomato, basil" in prompt
     assert "pizza concept" in prompt
+    assert "using only these selected ingredients" in prompt
+    assert "do not add extra ingredients" in prompt

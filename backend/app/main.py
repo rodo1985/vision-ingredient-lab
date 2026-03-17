@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 
 from app.api.routes import create_router
@@ -52,6 +53,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Source and generated images are returned as `/data/...` URLs, so the backend
+    # must expose that directory directly for the frontend to render them.
+    app.mount("/data", StaticFiles(directory=settings.project_root / "data"), name="data")
     app.include_router(
         create_router(
             metadata_store=metadata_store,

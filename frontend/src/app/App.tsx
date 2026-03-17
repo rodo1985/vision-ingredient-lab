@@ -11,6 +11,17 @@ import { mockClient } from "../services/mockClient";
 import { resolveApiClient } from "../services";
 import type { AppConfig, GenerateResponse, ImageRecord, SearchResult, SyncResponse } from "../types/api";
 
+const DEFAULT_IMAGE_COUNT = 8;
+
+function buildDefaultResults(images: ImageRecord[]): SearchResult[] {
+  return images.slice(0, DEFAULT_IMAGE_COUNT).map((image) => ({
+    image,
+    score: 0.5,
+    matchReasons: ["semantic"],
+    matchedTags: [],
+  }));
+}
+
 export function App() {
   const [client, setClient] = useState<ApiClient>(mockClient);
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -37,14 +48,7 @@ export function App() {
       setConfig(loadedConfig);
       setImages(loadedImages.items);
       setSyncStatus(loadedSync);
-      setResults(
-        loadedImages.items.map((image) => ({
-          image,
-          score: 0.5,
-          matchReasons: ["semantic"],
-          matchedTags: [],
-        })),
-      );
+      setResults(buildDefaultResults(loadedImages.items));
     }
 
     void loadInitialData();
@@ -55,12 +59,16 @@ export function App() {
       if (!config) {
         return;
       }
+      if (!debouncedQuery.trim()) {
+        setResults(buildDefaultResults(images));
+        return;
+      }
       const response = await client.search(debouncedQuery);
       setResults(response.items);
     }
 
     void runSearch();
-  }, [client, config, debouncedQuery]);
+  }, [client, config, debouncedQuery, images]);
 
   const selectedItems = useMemo(
     () => images.filter((image) => selectedIds.includes(image.id)),

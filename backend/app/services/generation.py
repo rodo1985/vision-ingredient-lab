@@ -31,8 +31,9 @@ def build_generation_prompt(
         raise ValueError("At least one ingredient must be selected.")
     ingredient_names = ", ".join(record.tags[0] if record.tags else record.filename for record in selected_records)
     prompt = (
-        "Create a food-focused creative composition that meaningfully combines these ingredients: "
-        f"{ingredient_names}. Keep the ingredients visually recognizable and styled like a polished recipe concept."
+        "Create a food-focused creative composition using only these selected ingredients: "
+        f"{ingredient_names}. Keep each selected ingredient visually recognizable, and do not add extra ingredients "
+        "that are not in the selected list unless the user explicitly asks for them."
     )
     if creative_direction:
         prompt += f" Additional direction: {creative_direction.strip()}."
