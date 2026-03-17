@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Annotated, Any
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
-from typing import Any
 
 from backend.app.prompt_builder import build_default_prompt
 from backend.clients.image_generation_client import ImageGenerationClient
-
 
 router = APIRouter()
 
@@ -73,7 +73,7 @@ def _get_image_client(request: Request) -> ImageGenerationClient:
 @router.post("/generation", response_model=GenerationResponse)
 def generate_image_route(
     request: GenerationRequest,
-    image_client: ImageGenerationClient = Depends(_get_image_client),
+    image_client: Annotated[ImageGenerationClient, Depends(_get_image_client)],
 ) -> GenerationResponse:
     """Generate an image for the provided ingredients and return the result.
 
@@ -91,15 +91,18 @@ def generate_image_route(
     try:
         prompt = build_default_prompt(request.ingredients)
     except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error))
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
     try:
         result = image_client.generate_image(prompt, size=request.size)
     except ValueError as error:
-        raise HTTPException(status_code=502, detail=str(error))
+        raise HTTPException(status_code=502, detail=str(error)) from error
 
     return GenerationResponse(
         prompt=result.prompt,
         image_url=result.image_url,
-        metadata={"description": result.metadata.get("description"), "keywords": result.metadata.get("keywords")},
+        metadata={
+            "description": result.metadata.get("description"),
+            "keywords": result.metadata.get("keywords"),
+        },
     )

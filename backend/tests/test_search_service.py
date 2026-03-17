@@ -1,91 +1,83 @@
 """Tests for the metadata search service."""
 
-from __future__ import annotations
+from datetime import datetime, timezone
 
-from datetime import UTC, datetime
-from pathlib import Path
-
-import pytest
-
-from backend.metadata_repository import CsvMetadataRepository, MetadataRow
-from backend.search.service import search_metadata
+from backend.app.models.metadata import MetadataRecord
+from backend.app.services.search_service import search_metadata
 
 
-def _now_timestamp() -> str:
-    """Return a timezone-aware ISO timestamp for test rows."""
+def _build_record(
+    filepath: str,
+    description: str,
+    keywords: list[str],
+) -> MetadataRecord:
+    """Create a deterministic MetadataRecord for search tests."""
 
-    return datetime.now(UTC).isoformat()
-
-
-def _add_row(repo: CsvMetadataRepository, filename: str, description: str, keywords: list[str]) -> MetadataRow:
-    """Persist a metadata row to the repository for testing."""
-
-    filepath = str(Path(filename).resolve())
-    row = MetadataRow(
-        filename=filename,
+    timestamp = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    return MetadataRecord(
+        filename=filepath.split("/")[-1],
         filepath=filepath,
         description=description,
         keywords=keywords,
-        processed_at=_now_timestamp(),
-        last_modified=_now_timestamp(),
+        processed_at=timestamp,
+        last_modified=timestamp,
     )
-    repo.append(row)
-    return row
 
 
-def test_search_matches_keyword(tmp_path: Path) -> None:
-    """Ensure keyword matches are surfaced by the search service."""
+def test_search_prioritizes_keyword_matches() -> None:
+    """Ensure keyword hits rank higher than mere description matches."""
 
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    _add_row(repo, "tomato.png", "Chef's tomato", ["tomato"])
+    tomato_record = _build_record(
+        "data/tomato.jpg",
+        "Fresh tomato slices with basil.",
+        keywords=["tomato", "basil"],
+    )
+    basil_record = _build_record(
+        "data/basil.jpg",
+        "Basil leaves arranged artfully.",
+        keywords=["basil"],
+    )
 
-    results = search_metadata(repo, "tomato")
+    results = search_metadata([tomato_record, basil_record], "TOMATO")
 
-    assert len(results) == 1
-    assert results[0].filename == "tomato.png"
-
-
-def test_search_matches_description(tmp_path: Path) -> None:
-    """Ensure description matches are surfaced when keywords do not match."""
-
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    _add_row(repo, "basil.png", "Fresh basil leaves", ["herb"])
-
-    results = search_metadata(repo, "fresh")
-
-    assert len(results) == 1
-    assert results[0].filename == "basil.png"
+    assert results == [tomato_record]
 
 
-def test_search_returns_empty_for_no_match(tmp_path: Path) -> None:
-    """Ensure searches that hit nothing return an empty list."""
+def test_search_falls_back_to_description() -> None:
+    """Verify description tokens provide matches when keywords are absent."""
 
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    _add_row(repo, "cheese.png", "Creamy cheese layer", ["cheese"])
+    description_only = _build_record(
+        "data/arugula.jpg",
+        "Crunchy arugula and roasted peppers.",
+        keywords=[],
+    )
+    other = _build_record(
+        "data/cheese.jpg",
+        "Soft cheese rounds.",
+        keywords=["cheese"],
+    )
 
-    results = search_metadata(repo, "pepper")
+    results = search_metadata([description_only, other], "arugula")
 
-    assert results == []
-
-
-def test_search_orders_by_score_and_filepath(tmp_path: Path) -> None:
-    """Ensure matches are sorted by keyword score first, then filepath."""
-
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    # Keyword match first (higher score)
-    first = _add_row(repo, "alpha.png", "Ingredient A", ["pepper"])
-    # Description match only; should follow after keyword hits.
-    second = _add_row(repo, "beta.png", "Pepper is spicy", ["spice"])
-
-    results = search_metadata(repo, "pepper")
-
-    assert results == [first, second]
+    assert results == [description_only]
 
 
-def test_search_raises_on_empty_query(tmp_path: Path) -> None:
-    """Ensure empty queries raise a ValueError."""
+def test_search_empty_query_returns_all_sorted() -> None:
+    """Ensure empty queries return all records sorted by filepath."""
 
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
+    record_b = _build_record(
+        "data/basil.jpg",
+        "Basil overview.",
+        keywords=["basil"],
+    )
+    record_a = _build_record(
+        "data/apple.jpg",
+        "Apple slices.",
+        keywords=["apple"],
+    )
 
-    with pytest.raises(ValueError):
-        search_metadata(repo, "  ")
+    results = search_metadata([record_b, record_a], "")
+
+    assert len(results) == 2
+    assert results[0].filepath == "data/apple.jpg"
+    assert results[1].filepath == "data/basil.jpg"

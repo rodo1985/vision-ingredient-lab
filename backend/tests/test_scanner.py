@@ -1,95 +1,77 @@
-"""Unit tests for the image scanner service."""
+"""Tests for the primary scanner implementation."""
 
-from pathlib import Path
+from datetime import datetime, timezone
 
-from backend.ingestion.scanner import ImageFileRecord, ImageScanner
+import pytest
 
-
-def test_scan_empty_directory(tmp_path: Path) -> None:
-    """Ensure an empty folder yields no image records.
-
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    scanner = ImageScanner()
-    assert scanner.scan_folder(tmp_path) == []
+from backend.app.services.scanner import scan_image_folder
 
 
-def test_scan_filters_unsupported_files(tmp_path: Path) -> None:
-    """Ensure unsupported file extensions are ignored during scans.
+def test_scan_finds_supported_images(tmp_path) -> None:
+    """Ensure supported image files are returned with proper metadata.
 
     Parameters:
-        tmp_path: Temporary directory fixture.
+        tmp_path: Pytest temporary directory fixture.
 
     Returns:
-        None.
+        None
 
     Raises:
-        None.
+        AssertionError: If supported images are not discovered with UTC timestamps.
     """
 
-    unsupported = tmp_path / "document.txt"
-    unsupported.write_text("not an image")
+    jpg = tmp_path / "tomato.jpg"
+    png = tmp_path / "subdir" / "basil.PNG"
+    png.parent.mkdir()
+    jpg.write_bytes(b"tomato")
+    png.write_bytes(b"basil")
 
-    scanner = ImageScanner()
-    assert scanner.scan_folder(tmp_path) == []
+    records = scan_image_folder(tmp_path)
+    # Both files should be discovered, but non-image files do not exist here.
+    assert len(records) == 2
+    filenames = {record.filename for record in records}
+    assert filenames == {"tomato.jpg", "basil.PNG"}
+    assert all(isinstance(record.last_modified, datetime) for record in records)
+    # Metadata timestamps must include UTC timezone information.
+    assert all(record.last_modified.tzinfo is timezone.utc for record in records)
 
 
-def test_scan_recursive_nested_files(tmp_path: Path) -> None:
-    """Ensure supported nested files are discovered recursively.
+def test_scan_is_deterministic_by_filepath(tmp_path) -> None:
+    """Verify that sorting by filepath yields deterministic record ordering.
 
     Parameters:
-        tmp_path: Temporary directory fixture.
+        tmp_path: Pytest temporary directory fixture.
 
     Returns:
-        None.
+        None
 
     Raises:
-        None.
+        AssertionError: If files are not returned in stable sorted order.
     """
 
-    nested = tmp_path / "level1" / "level2"
-    nested.mkdir(parents=True)
-    image = nested / "tomato.png"
-    image.write_text("fake image")
+    higher = tmp_path / "zzz.png"
+    lower = tmp_path / "aaa.png"
+    higher.write_bytes(b"high")
+    lower.write_bytes(b"low")
 
-    scanner = ImageScanner()
-    records = scanner.scan_folder(tmp_path)
-
-    assert records == [
-        ImageFileRecord(
-            filename="tomato.png",
-            filepath=str(image.resolve()),
-            last_modified=image.stat().st_mtime,
-        )
-    ]
+    records = scan_image_folder(tmp_path)
+    assert records[0].filename == "aaa.png"
+    assert records[1].filename == "zzz.png"
 
 
-def test_scan_deterministic_order(tmp_path: Path) -> None:
-    """Ensure scan results are sorted consistently by filepath.
+def test_scan_raises_for_invalid_directory(tmp_path) -> None:
+    """Confirm that scanning a non-existent path raises a `ValueError`.
 
     Parameters:
-        tmp_path: Temporary directory fixture.
+        tmp_path: Pytest temporary directory fixture.
 
     Returns:
-        None.
+        None
 
     Raises:
-        None.
+        AssertionError: If invalid paths do not produce the expected exception.
     """
 
-    # Create files in a different creation order than absolute path sorting.
-    (tmp_path / "b.png").write_text("b")
-    (tmp_path / "a.png").write_text("a")
-
-    scanner = ImageScanner()
-    results = scanner.scan_folder(tmp_path)
-
-    assert [record.filename for record in results] == ["a.png", "b.png"]
+    missing = tmp_path / "nope"
+    with pytest.raises(ValueError):
+        scan_image_folder(missing)

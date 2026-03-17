@@ -22,7 +22,8 @@ export interface MetadataRow {
  */
 export interface GenerationRequest {
   ingredients: string[];
-  size?: string;
+  baseStyle?: string;
+  creativity?: number;
 }
 
 /**
@@ -91,6 +92,21 @@ function defaultFetcher(input: RequestInfo, init?: RequestInit): Promise<Respons
 }
 
 /**
+ * Resolve the backend generation payload into a browser-safe image source.
+ */
+function resolveGeneratedImageUrl(payload: GenerationResponsePayload): string {
+  if (typeof payload.image_url === "string" && payload.image_url.length > 0) {
+    return payload.image_url;
+  }
+
+  if (typeof payload.image_base64 === "string" && payload.image_base64.length > 0) {
+    return `data:image/png;base64,${payload.image_base64}`;
+  }
+
+  throw new Error("Generation response did not include an image payload.");
+}
+
+/**
  * Create an API client that talks to the Vision Ingredient Lab backend.
  *
  * @param options Optional overrides for base URL and fetch implementation.
@@ -102,7 +118,7 @@ export function createApiClient(options?: ApiClientOptions): ApiClient {
 
   return {
     async listMetadata(): Promise<MetadataRow[]> {
-      const endpoint = composeEndpoint(baseUrl, "/metadata/");
+      const endpoint = composeEndpoint(baseUrl, "/images");
       const response = await fetcher(endpoint, { method: "GET" });
       return parseResponse<MetadataRow[]>(response, "list metadata");
     },
@@ -111,23 +127,28 @@ export function createApiClient(options?: ApiClientOptions): ApiClient {
       if (!query.trim()) {
         throw new Error("searchMetadata requires a non-empty query");
       }
-      const endpoint = composeEndpoint(baseUrl, "/metadata/search");
-      const url = `${endpoint}?q=${encodeURIComponent(query)}`;
+      const endpoint = composeEndpoint(baseUrl, "/search");
+      const url = `${endpoint}?query=${encodeURIComponent(query)}`;
       const response = await fetcher(url, { method: "GET" });
       return parseResponse<MetadataRow[]>(response, "search metadata");
     },
 
     async generateImage(request: GenerationRequest): Promise<GenerationResponse> {
-      const endpoint = composeEndpoint(baseUrl, "/generation");
+      const endpoint = composeEndpoint(baseUrl, "/generate");
+      const payload = {
+        selected_ingredients: request.ingredients,
+        ...(request.baseStyle ? { base_style: request.baseStyle } : {}),
+        ...(typeof request.creativity === "number" ? { creativity: request.creativity } : {}),
+      };
       const response = await fetcher(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
+        body: JSON.stringify(payload),
       });
       const body = await parseResponse<GenerationResponsePayload>(response, "generate image");
       return {
         prompt: body.prompt,
-        imageUrl: body.image_url,
+        imageUrl: resolveGeneratedImageUrl(body),
         metadata: {
           description: body.metadata?.description,
           keywords: body.metadata?.keywords,
@@ -147,7 +168,10 @@ export const defaultApiClient = createApiClient();
  */
 interface GenerationResponsePayload {
   prompt: string;
-  image_url: string;
+  image_url?: string | null;
+  image_base64?: string | null;
+  model?: string;
+  revised_prompt?: string | null;
   metadata?: {
     description?: string;
     keywords?: string[];

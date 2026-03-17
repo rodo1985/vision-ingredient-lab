@@ -162,7 +162,7 @@ class VisionClient:
         headers = {"Content-Type": "application/json"}
         last_error: Exception | None = None
 
-        for attempt in range(self.retries):
+        for _attempt in range(self.retries):
             try:
                 # Http clients should expose a .post method with signature similar to requests.
                 return self._http_client.post(url, json=payload, headers=headers)

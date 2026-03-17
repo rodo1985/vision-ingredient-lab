@@ -1,88 +1,119 @@
-"""Tests for the image generation API endpoint."""
+"""Tests for the generation API endpoint."""
 
 from __future__ import annotations
 
-from typing import Mapping
-
 from fastapi.testclient import TestClient
 
-from backend.api.app import create_app
-from backend.clients.image_generation_client import ImageGenerationClient, ImageGenerationResult
+from backend.app.api.dependencies import get_generation_service
+from backend.app.main import app
+from backend.app.services.generation_service import GenerationResult
 
 
-class FakeImageService:
-    """Test double for the external image generation service."""
-
-    def __init__(self) -> None:
-        """Initialize call recorder state."""
-        self.calls: list[tuple[str, str | None]] = []
-
-    def generate(self, prompt: str, size: str | None = None) -> Mapping[str, object]:
-        """Return a canned image payload while recording the call."""
-        self.calls.append((prompt, size))
-        return {
-            "data": [
-                {
-                    "url": "https://example.com/generated.png",
-                    "description": "Generated food image",
-                    "keywords": ["tomato", "basil"],
-                }
-            ]
-        }
-
-
-def test_generation_route_returns_image_url() -> None:
-    """Ensure the API returns a generated image payload for valid requests."""
-
-    service = FakeImageService()
-    client = ImageGenerationClient(image_service=service)
-    app = create_app(client)
-    test_client = TestClient(app)
-
-    response = test_client.post("/api/generation", json={"ingredients": ["tomato", "basil"]})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["image_url"] == "https://example.com/generated.png"
-    assert "prompt" in body
-    assert body["metadata"]["description"] == "Generated food image"
-
-
-def test_generation_route_passes_requested_size() -> None:
-    """Ensure the endpoint forwards an explicit size override to the image client.
+class StubGenerationService:
+    """Provide deterministic generation results for API tests.
 
     Parameters:
         None.
 
     Returns:
-        None.
+        StubGenerationService: Fake service with the production `generate` interface.
 
     Raises:
         None.
     """
 
-    service = FakeImageService()
-    client = ImageGenerationClient(image_service=service)
-    app = create_app(client)
-    test_client = TestClient(app)
+    def generate(
+        self,
+        selected_ingredients: list[str],
+        *,
+        base_style: str,
+        creativity: float,
+    ) -> GenerationResult:
+        """Return a fixed generation result for assertions.
 
-    response = test_client.post(
-        "/api/generation",
-        json={"ingredients": ["tomato", "basil"], "size": "512x512"},
+        Parameters:
+            selected_ingredients: Ingredient selection submitted by the client.
+            base_style: Requested image style.
+            creativity: Requested creativity level.
+
+        Returns:
+            GenerationResult: Deterministic fake result for test assertions.
+
+        Raises:
+            ValueError: If the request would be invalid in production.
+        """
+
+        if len({ingredient.strip().lower() for ingredient in selected_ingredients}) < 2:
+            raise ValueError("at least two unique ingredients are required")
+        return GenerationResult(
+            prompt=f"{base_style} :: {creativity:.2f}",
+            image_base64="ZmFrZS1pbWFnZQ==",
+            image_url=None,
+            revised_prompt="Refined prompt",
+            model="gpt-image-1",
+        )
+
+
+def test_generate_image_returns_image_payload() -> None:
+    """Verify `/api/generate` returns the generated image payload.
+
+    Parameters:
+        None.
+
+    Returns:
+        None
+
+    Raises:
+        AssertionError: If the endpoint fails to serialize the generation result.
+    """
+
+    app.dependency_overrides[get_generation_service] = lambda: StubGenerationService()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/generate",
+        json={
+            "selected_ingredients": ["tomato", "basil"],
+            "base_style": "editorial food photography",
+            "creativity": 0.7,
+        },
     )
 
     assert response.status_code == 200
-    assert service.calls[0][1] == "512x512"
+    payload = response.json()
+    assert payload["image_base64"] == "ZmFrZS1pbWFnZQ=="
+    assert payload["model"] == "gpt-image-1"
+    assert payload["revised_prompt"] == "Refined prompt"
+
+    app.dependency_overrides.pop(get_generation_service, None)
 
 
-def test_generation_route_validates_ingredients() -> None:
-    """Ensure the API rejects requests with insufficient ingredients."""
+def test_generate_image_returns_422_for_invalid_selection() -> None:
+    """Verify `/api/generate` surfaces generation validation failures cleanly.
 
-    image_service = FakeImageService()
-    client = ImageGenerationClient(image_service=image_service)
-    app = create_app(client)
-    test_client = TestClient(app)
+    Parameters:
+        None.
 
-    response = test_client.post("/api/generation", json={"ingredients": ["tomato"]})
+    Returns:
+        None
+
+    Raises:
+        AssertionError: If invalid selections do not produce a 422 response.
+    """
+
+    app.dependency_overrides[get_generation_service] = lambda: StubGenerationService()
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/generate",
+        json={
+            "selected_ingredients": ["tomato", " tomato "],
+            "base_style": "editorial food photography",
+            "creativity": 0.7,
+        },
+    )
 
     assert response.status_code == 422
+    assert "at least two unique ingredients" in response.json()["detail"]
+
+    app.dependency_overrides.pop(get_generation_service, None)

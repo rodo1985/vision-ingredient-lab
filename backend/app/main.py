@@ -1,56 +1,132 @@
-"""Minimal backend entry point for local configuration validation."""
+"""FastAPI application entrypoint for Vision Ingredient Lab."""
 
-from __future__ import annotations
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 
-from backend.app.config import AppConfig
+from fastapi import FastAPI
+from openai import OpenAI
+
+from backend.app.api.routes_generation import generation_router
+from backend.app.api.routes_search import search_router
+from backend.app.core.config import Settings, get_settings
+from backend.app.core.logging import configure_logging, get_logger
+from backend.app.services.enrichment_pipeline import MetadataEnrichmentPipeline
+from backend.app.services.metadata_repository import MetadataCSVRepository
+from backend.app.services.vision_client import VisionClient
+
+logger = get_logger(__name__)
 
 
-def build_startup_summary(config: AppConfig) -> str:
-    """Create a human-readable startup summary for local development.
+def _run_startup_enrichment(settings: Settings) -> None:
+    """Run startup metadata enrichment when configuration is available.
 
     Parameters:
-        config: Loaded backend configuration.
+        settings: Resolved application settings.
 
     Returns:
-        str: Summary of key runtime paths and model settings.
+        None
 
     Raises:
-        None.
-
-    Example:
-        >>> config = AppConfig(...)
-        >>> build_startup_summary(config)
-        'Vision Ingredient Lab backend configured...'
+        OSError: If the dataset or metadata repository cannot be accessed.
     """
 
-    return (
-        "Vision Ingredient Lab backend configured with "
-        f"images_dir={config.images_dir}, "
-        f"metadata_csv_path={config.metadata_csv_path}, "
-        f"vision_model={config.openai_vision_model}, "
-        f"image_model={config.openai_image_model}."
+    if not settings.image_dataset_dir.exists():
+        logger.info(
+            "Skipping startup enrichment because dataset_dir=%s does not exist",
+            settings.image_dataset_dir,
+        )
+        return
+
+    if not settings.openai_api_key:
+        logger.info("Skipping startup enrichment because OPENAI_API_KEY is not configured")
+        return
+
+    repository = MetadataCSVRepository(settings.metadata_csv_path)
+    vision_client = VisionClient(
+        client=OpenAI(api_key=settings.openai_api_key),
+        vision_model=settings.openai_vision_model,
+    )
+    pipeline = MetadataEnrichmentPipeline(
+        metadata_repository=repository,
+        vision_client=vision_client,
+    )
+    result = pipeline.run(settings.image_dataset_dir)
+    logger.info(
+        "Startup enrichment finished: discovered=%s new=%s persisted=%s",
+        result.discovered_files,
+        result.new_files,
+        result.persisted_records,
     )
 
 
-def main() -> None:
-    """Load configuration and print a startup summary.
+@asynccontextmanager
+async def app_lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Configure shared application concerns during startup and shutdown.
 
     Parameters:
-        None.
+        _: The FastAPI application instance. The current startup path does not
+            need direct access to the app object, so the argument is unused.
 
-    Returns:
-        None.
-
-    Raises:
-        ValueError: If required configuration is missing.
+    Yields:
+        AsyncIterator[None]: Control back to FastAPI after startup work completes.
 
     Example:
-        >>> main()
+        The lifespan hook is registered automatically when the application is created.
     """
 
-    config = AppConfig.from_env()
-    print(build_startup_summary(config))
+    settings = get_settings()
+    configure_logging()
+
+    # Logging the resolved paths early makes local debugging easier when the
+    # dataset or metadata file lives outside the repository root.
+    logger.info(
+        "Starting %s in %s mode with dataset_dir=%s metadata_csv=%s",
+        settings.app_name,
+        settings.app_env,
+        settings.image_dataset_dir,
+        settings.metadata_csv_path,
+    )
+    _run_startup_enrichment(settings)
+    yield
+    logger.info("Shutting down %s", settings.app_name)
 
 
-if __name__ == "__main__":
-    main()
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application instance.
+
+    Returns:
+        FastAPI: The configured API application.
+
+    Example:
+        >>> app = create_app()
+        >>> app.title
+        'Vision Ingredient Lab API'
+    """
+
+    settings = get_settings()
+    application = FastAPI(
+        title=settings.app_name,
+        version="0.1.0",
+        lifespan=app_lifespan,
+    )
+    application.include_router(search_router)
+    application.include_router(generation_router)
+
+    @application.get("/health", tags=["health"])
+    def healthcheck() -> dict[str, str]:
+        """Return a basic readiness signal for local development.
+
+        Returns:
+            dict[str, str]: A basic status payload.
+
+        Example:
+            >>> healthcheck()
+            {'status': 'ok'}
+        """
+
+        return {"status": "ok"}
+
+    return application
+
+
+app = create_app()

@@ -1,99 +1,142 @@
-# vision-ingredient-lab
+# Vision Ingredient Lab
 
-Vision Ingredient Lab is a toy full-stack application for exploring ingredient imagery with AI. The backend scans a local image library, generates descriptions and keywords for new files, and stores metadata in CSV. The frontend now supports ingredient search, result browsing, selection, and a generation flow that requests a combined creative image from the backend.
+Vision Ingredient Lab is a toy full-stack application for exploring ingredient images with AI. The primary backend scans a local image folder, enriches new files with OpenAI-generated metadata, stores that metadata in CSV, and exposes search plus creative generation endpoints. The React frontend lets contributors search ingredient records, build a selection, and request a generated composition from the backend.
+
+This review branch also preserves an older backend slice that was merged in parallel. The documented runtime below uses the newer `backend/app` stack; the legacy modules remain in the tree so their behavior can still be reviewed and tested before consolidation.
 
 ## What this repo is
-- A Python backend for local image ingestion, metadata enrichment, and search/generation APIs.
-- A React frontend for ingredient search, result browsing, selection, and generation-ready state management.
-- A lightweight playground for testing an image-to-metadata-to-generation workflow with OpenAI models.
+
+- A Python backend for local image ingestion, metadata enrichment, CSV persistence, and API-driven search/generation flows.
+- A React frontend for ingredient search, selection, and creative image generation.
+- A contributor-friendly playground for validating backend contracts and frontend UX in the same repository.
 
 ## Key features / scope
-- Scans a local ingredient image folder.
-- Detects only new or unprocessed files during startup synchronization.
-- Tracks processed files in a CSV metadata store.
-- Enriches new files with generated descriptions and keywords.
-- Searches persisted metadata by keyword or description text.
-- Exposes FastAPI endpoints for metadata search and image generation.
-- Builds creative prompts from selected ingredients.
-- Uses OpenAI models for vision tagging and image generation.
-- Provides a frontend search panel, results grid, selected ingredient panel, and generated result display backed by shared state.
-- Keeps backend and frontend work separated by area.
-- Does not yet include production deployment, authentication, or a persistent database.
+
+### What it does
+
+- Scan a local dataset of ingredient images.
+- Detect newly added images without reprocessing the entire dataset.
+- Generate descriptions and keywords for images with OpenAI models.
+- Persist image metadata in CSV.
+- Expose REST endpoints for metadata listing, search, and image generation.
+- Run a React frontend against the backend API or local mock-friendly test doubles.
+- Preserve both the primary backend stack and a legacy backend slice during merge review.
+
+### What it does not do yet
+
+- Provide production deployment or infrastructure automation.
+- Include authentication or user accounts.
+- Use a production database or hosted vector store.
+- Consolidate the legacy backend slice into the primary `backend/app` runtime.
 
 ## Setup
-### Python backend with `uv`
-1. Install `uv`: [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/)
-2. Create the virtual environment:
-   `uv venv`
-3. Sync dependencies, including dev dependencies:
-   `uv sync --dev`
 
-### Frontend
-1. Install frontend dependencies:
-   `cd frontend && npm install`
+### Prerequisites
+
+- Python `3.11+`
+- Node.js `20+`
+- [`uv`](https://docs.astral.sh/uv/)
+
+### Python environment with `uv`
+
+Run these commands from the repository root:
+
+```bash
+uv venv
+uv sync
+```
+
+### Frontend dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+### Optional local `.env`
+
+Create a repository-root `.env` file when you want real OpenAI-backed behavior:
+
+```env
+OPENAI_API_KEY=your_api_key
+OPENAI_VISION_MODEL=gpt-4.1-mini
+OPENAI_IMAGE_MODEL=gpt-image-1
+IMAGE_DATASET_DIR=backend/data/images
+METADATA_CSV_PATH=backend/data/metadata/ingredients.csv
+```
+
+Notes:
+
+- `OPENAI_API_KEY` is required for startup enrichment and generation requests.
+- Startup enrichment is skipped when the dataset directory does not exist.
+- `METADATA_CSV_PATH` defaults to `data/metadata/ingredients.csv` inside the current working directory if you do not override it.
 
 ## How to run
+
 ### Backend
-- Validate backend configuration:
-  `uv run python -m backend.app.main`
-- Run the FastAPI backend locally:
-  `uv run python -m backend.app.api_main`
-- Run backend tests:
-  `uv run pytest`
-- Run a focused backend test module:
-  `uv run pytest backend/tests/test_startup_sync.py`
-- Run the generation API test suite:
-  `uv run pytest backend/tests/test_generation_api.py`
+
+Start the primary FastAPI backend from the repository root:
+
+```bash
+uv run uvicorn backend.app.main:app --reload
+```
+
+Useful backend checks:
+
+```bash
+uv run pytest
+uv run ruff check .
+uv run python -c "from backend.app.main import app; print(app.title)"
+```
 
 ### Frontend
-- Start the React frontend locally:
-  `cd frontend && npm run dev`
-- Run frontend tests:
-  `cd frontend && npm test`
-- Build the frontend:
-  `cd frontend && npm run build`
+
+```bash
+cd frontend
+npm run dev
+```
+
+Additional frontend commands:
+
+```bash
+cd frontend
+npm test
+npm run build
+```
 
 ## Configuration
-Set these environment variables before running backend commands:
 
-- `OPENAI_API_KEY`: Required API key for OpenAI requests.
-- `VISION_IMAGES_DIR`: Optional path to the local image dataset. Default: `data/images`
-- `VISION_METADATA_CSV`: Optional path to the metadata CSV file. Default: `data/metadata.csv`
-- `OPENAI_VISION_MODEL`: Optional vision model name. Default: `gpt-4.1-mini`
-- `OPENAI_IMAGE_MODEL`: Optional image generation model name. Default: `gpt-image-1`
-- `OPENAI_MAX_RETRIES`: Optional retry count for OpenAI calls. Default: `2`
+The primary backend reads configuration from environment variables and an optional repository-root `.env` file.
 
-Set this optional environment variable before running frontend commands:
-
-- `VITE_BACKEND_BASE_URL`: Optional frontend base URL for backend API requests. Default: `/api`
+- `OPENAI_API_KEY`: OpenAI API key for metadata enrichment and generation.
+- `OPENAI_VISION_MODEL`: Optional override for the image understanding model.
+- `OPENAI_IMAGE_MODEL`: Optional override for the image generation model.
+- `IMAGE_DATASET_DIR`: Local folder containing ingredient images.
+- `METADATA_CSV_PATH`: CSV file used for metadata persistence.
+- `APP_ENV`: Optional environment label used in startup logging.
 
 ## Project structure
-- `backend/app`: Backend startup, config, and prompt-building modules.
-- `backend/clients`: External service adapters such as the OpenAI vision client.
-- `backend/ingestion`: Local dataset scanning helpers.
-- `backend/metadata_repository.py`: CSV persistence logic for image metadata.
-- `backend/api`: FastAPI application factory and routes.
-- `backend/search`: Metadata search services.
-- `backend/services`: Startup synchronization services.
-- `backend/workflows`: Multi-step orchestration such as metadata enrichment.
-- `backend/tests`: Backend tests.
-- `frontend/src/components`: Shell and presentational React components.
-- `frontend/src/lib`: Shared frontend utilities such as the API client.
-- `frontend/src/state`: Shared frontend reducer/context state.
-- `frontend/src/test`: Frontend test setup and app-level tests.
-- `docs`: Implementation plans and project notes.
-- `docs/backend-api-guide.md`: Quick reference for running and testing the FastAPI endpoints.
-- `docs/frontend-guide.md`: Frontend architecture, commands, and flow reference.
+
+- `backend/app`: Primary backend application package, API routes, settings, models, and services.
+- `backend/tests`: Backend tests for both the primary app and the preserved legacy slice.
+- `frontend/src`: React components, state, and API client code.
+- `docs`: Supporting implementation and API notes.
+- `backend/api`, `backend/clients`, `backend/ingestion`, `backend/search`, `backend/workflows`: Legacy modules preserved during merge review so behavior remains inspectable and testable.
 
 ## API surface
-- `GET /health`: Basic health check endpoint.
-- `GET /api/metadata/`: List persisted metadata rows.
-- `GET /api/metadata/search?q=<term>`: Search metadata by keyword or description.
-- `POST /api/generation`: Generate an image from selected ingredients.
 
-Refer to [backend API guide](docs/backend-api-guide.md) for more detail on running the API server and payload requirements.
+Primary backend endpoints:
+
+- `GET /health`: Basic service health check.
+- `GET /api/images`: List stored metadata rows.
+- `GET /api/search?query=<term>`: Search metadata by keyword and description terms.
+- `POST /api/generate`: Generate an image from selected ingredients.
+
+See [docs/backend-api-guide.md](/Users/REDONSX1/Documents/training/Codex/code/vision-ingredient-lab-merge-review-20260317-115025/docs/backend-api-guide.md) for request examples and testing notes.
 
 ## Contributing / Development notes
-- Prefer small, well-named modules and explicit control flow.
-- Keep README and docs aligned with implementation changes.
-- Add or update tests for every behavior change.
+
+- The root `pyproject.toml` is the canonical `uv` manifest for this review branch.
+- Keep README and docs aligned with whichever backend contract you change.
+- When touching the preserved legacy modules, keep their separate tests passing until the backend stacks are intentionally consolidated.
+- Add or update tests for every behavior change, including contract changes in the frontend API client.

@@ -1,3 +1,5 @@
+"""CSV-backed metadata repository for the preserved legacy backend slice."""
+
 from __future__ import annotations
 
 import csv
@@ -5,7 +7,6 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
-
 
 _CSV_HEADERS = [
     "filename",
@@ -37,7 +38,7 @@ class MetadataRow:
 
     Example:
         >>> MetadataRow("tomato.png", "/tmp/tomato.png", "red tomato", ["tomato"], "now", "later")
-        MetadataRow(filename='tomato.png', filepath='/tmp/tomato.png', description='red tomato', keywords=['tomato'], processed_at='now', last_modified='later')
+        MetadataRow(...)
     """
 
     filename: str

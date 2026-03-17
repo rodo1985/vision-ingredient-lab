@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -109,11 +109,15 @@ class AppConfig:
 
         # Default paths should remain stable even when commands are launched from a subdirectory.
         project_root = Path(__file__).resolve().parents[2]
+        default_images_dir = project_root / "data" / "images"
+        default_metadata_csv = project_root / "data" / "metadata.csv"
 
         return cls(
-            images_dir=Path(os.getenv("VISION_IMAGES_DIR", project_root / "data" / "images")).expanduser(),
+            images_dir=Path(
+                os.getenv("VISION_IMAGES_DIR", default_images_dir)
+            ).expanduser(),
             metadata_csv_path=Path(
-                os.getenv("VISION_METADATA_CSV", project_root / "data" / "metadata.csv")
+                os.getenv("VISION_METADATA_CSV", default_metadata_csv)
             ).expanduser(),
             openai_api_key=_read_required_env("OPENAI_API_KEY"),
             openai_vision_model=os.getenv("OPENAI_VISION_MODEL", "gpt-4.1-mini"),

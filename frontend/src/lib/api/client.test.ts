@@ -22,7 +22,7 @@ describe("createApiClient", () => {
 
     const rows = await client.listMetadata();
 
-    expect(fetcher).toHaveBeenCalledWith("/api/metadata/", { method: "GET" });
+    expect(fetcher).toHaveBeenCalledWith("/api/images", { method: "GET" });
     expect(rows).toEqual(sampleMetadata);
   });
 
@@ -35,7 +35,7 @@ describe("createApiClient", () => {
 
     const rows = await client.searchMetadata("tomato");
 
-    expect(fetcher).toHaveBeenCalledWith("/api/metadata/search?q=tomato", { method: "GET" });
+    expect(fetcher).toHaveBeenCalledWith("/api/search?query=tomato", { method: "GET" });
     expect(rows).toEqual(expected);
   });
 
@@ -53,7 +53,7 @@ describe("createApiClient", () => {
         JSON.stringify({
           prompt: "Make a pizza",
           image_url: "https://example.com/pizza.png",
-          metadata: { description: "A colorful pizza", keywords: ["pizza", "cheese"] },
+          model: "gpt-image-1",
         }),
         { status: 200 },
       ),
@@ -62,12 +62,29 @@ describe("createApiClient", () => {
 
     const response = await client.generateImage({ ingredients: ["tomato", "basil"] });
 
-    expect(fetcher).toHaveBeenCalledWith("/api/generation", {
+    expect(fetcher).toHaveBeenCalledWith("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ingredients: ["tomato", "basil"] }),
+      body: JSON.stringify({ selected_ingredients: ["tomato", "basil"] }),
     });
     expect(response.imageUrl).toBe("https://example.com/pizza.png");
-    expect(response.metadata.keywords).toEqual(["pizza", "cheese"]);
+    expect(response.metadata).toEqual({ description: undefined, keywords: undefined });
+  });
+
+  it("maps base64 generation payloads into a browser-safe data URL", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          prompt: "Paint basil leaves",
+          image_base64: "ZmFrZS1kYXRh",
+        }),
+        { status: 200 },
+      ),
+    );
+    const client = createApiClient({ baseUrl: "/api", fetcher });
+
+    const response = await client.generateImage({ ingredients: ["basil", "tomato"] });
+
+    expect(response.imageUrl).toBe("data:image/png;base64,ZmFrZS1kYXRh");
   });
 });

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import Iterable
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from backend.metadata_repository import CsvMetadataRepository, MetadataRow
+from backend.metadata_repository import CsvMetadataRepository
 from backend.search.service import search_metadata
 
 
@@ -59,7 +58,7 @@ def create_metadata_router(
         try:
             matches = search_metadata(repository, q)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return [asdict(row) for row in matches]
 
     return router

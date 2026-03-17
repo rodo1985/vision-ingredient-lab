@@ -1,192 +1,109 @@
-from __future__ import annotations
+"""Tests for the OpenAI vision client wrapper."""
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import pytest
 
-from backend.clients.vision_client import VisionClient, VisionMetadata
+from backend.app.services.vision_client import VisionClient, VisionMetadata
 
 
-@dataclass
-class DummyResponse:
-    """Minimal response stub that mimics a JSON-capable HTTP response.
+class DummyResponses:
+    """Minimal stub for the OpenAI responses API."""
 
-    Parameters:
-        payload: JSON payload to return from `json()`.
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._payload = payload
 
-    Returns:
-        DummyResponse: Stub response instance for tests.
+    def create(self, **kwargs: object) -> dict[str, object]:
+        """Return the configured payload without performing network I/O."""
 
-    Raises:
-        None.
-    """
-
-    payload: dict[str, Any]
-
-    def json(self) -> dict[str, Any]:
-        """Return the stored JSON payload.
-
-        Parameters:
-            None.
-
-        Returns:
-            dict[str, Any]: Stored payload for assertions.
-
-        Raises:
-            None.
-        """
-
-        return self.payload
+        return self._payload
 
 
-class DummyHttpClient:
-    """Minimal HTTP client stub that records outgoing requests for assertions.
+class DummyOpenAIClient:
+    """Simple container exposing a `responses` attribute."""
+
+    def __init__(self, payload: dict[str, object]) -> None:
+        self.responses = DummyResponses(payload)
+
+
+def test_describe_image_parses_mock_response(tmp_path: Path) -> None:
+    """Verify the client extracts description and keywords from the response.
 
     Parameters:
-        None.
+        tmp_path: Pytest temporary directory fixture.
 
     Returns:
-        DummyHttpClient: Stub transport object.
+        None
 
     Raises:
-        None.
+        AssertionError: If the parsed metadata does not match the stubbed response.
     """
 
-    def __init__(self) -> None:
-        """Initialize the stub transport state.
+    image_file = tmp_path / "ingredient.jpg"
+    image_file.write_text("placeholder")
 
-        Parameters:
-            None.
+    payload = {
+        "output": [
+            {"text": "Fresh tomato slices with basil"},
+            "Creamy mozzarella on the side.",
+        ],
+        "metadata": {"keywords": ["tomato", "Mozzarella", "basil"]},
+    }
 
-        Returns:
-            None.
+    client = VisionClient(DummyOpenAIClient(payload))
 
-        Raises:
-            None.
-        """
-
-        self.calls: list[dict[str, Any]] = []
-        self.response: Any = DummyResponse({"data": []})
-
-    def post(self, url: str, json: Any, headers: Any) -> Any:
-        """Record the outgoing request and return the configured response.
-
-        Parameters:
-            url: Target URL used by the client.
-            json: JSON payload sent by the client.
-            headers: Request headers sent by the client.
-
-        Returns:
-            Any: Configured stub response.
-
-        Raises:
-            None.
-        """
-
-        self.calls.append({"url": url, "json": json, "headers": headers})
-        return self.response
-
-
-def test_build_payload_valid(tmp_path: Path) -> None:
-    """Ensure payload construction includes the expected model and file metadata.
-
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    file_path = tmp_path / "ingredient.png"
-    file_path.write_bytes(b"PNGDATA")
-    client = VisionClient(model="vision-model", http_client=DummyHttpClient())
-
-    payload = client._build_payload(file_path)
-
-    assert payload["model"] == "vision-model"
-    assert payload["files"][0]["name"] == "ingredient.png"
-
-
-def test_analyze_image_parses_response(tmp_path: Path) -> None:
-    """Ensure successful responses are normalized into `VisionMetadata`.
-
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    file_path = tmp_path / "ingredient.jpg"
-    file_path.write_bytes(b"JPGDATA")
-    http = DummyHttpClient()
-    http.response = DummyResponse(
-        {
-            "data": [
-                {
-                    "description": "Fresh basil and tomato",
-                    "keywords": ["basil", "tomato"],
-                }
-            ]
-        }
-    )
-    client = VisionClient(model="vision-model", http_client=http)
-
-    metadata = client.analyze_image(file_path)
+    metadata = client.describe_image(image_file)
 
     assert isinstance(metadata, VisionMetadata)
-    assert metadata.description == "Fresh basil and tomato"
-    assert metadata.keywords == ("basil", "tomato")
-    assert len(http.calls) == 1
+    assert metadata.description.startswith("Fresh tomato slices")
+    assert metadata.keywords == ("tomato", "mozzarella", "basil")
+    assert metadata.source_path == image_file
 
 
-def test_analyze_image_rejects_malformed_response(tmp_path: Path) -> None:
-    """Ensure malformed payloads raise a validation error.
-
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    file_path = tmp_path / "ingredient.jpg"
-    file_path.write_bytes(b"JPGDATA")
-    http = DummyHttpClient()
-    http.response = DummyResponse({"data": [None]})
-    client = VisionClient(model="vision-model", http_client=http)
-
-    with pytest.raises(ValueError):
-        client.analyze_image(file_path)
-
-
-def test_analyze_image_requires_client(tmp_path: Path) -> None:
-    """Ensure the client fails fast when no HTTP transport is configured.
+def test_describe_image_fallback_keywords(tmp_path: Path) -> None:
+    """Ensure keywords fall back to the description when metadata lacks keywords.
 
     Parameters:
-        tmp_path: Temporary directory fixture.
+        tmp_path: Pytest temporary directory fixture.
 
     Returns:
-        None.
+        None
 
     Raises:
-        None.
+        AssertionError: If fallback keyword extraction does not occur.
     """
 
-    file_path = tmp_path / "ingredient.jpg"
-    file_path.write_bytes(b"JPGDATA")
-    client = VisionClient(model="vision-model")
+    image_file = tmp_path / "ingredient.jpg"
+    image_file.write_text("placeholder")
 
-    with pytest.raises(RuntimeError):
-        client.analyze_image(file_path)
+    payload = {
+        "output": ["Crunchy arugula and roasted peppers."],
+        "metadata": {},
+    }
+
+    client = VisionClient(DummyOpenAIClient(payload))
+
+    metadata = client.describe_image(image_file)
+
+    assert "crunchy arugula and roasted peppers" in metadata.description.lower()
+    assert metadata.keywords == ("crunchy arugula and roasted peppers",)
+
+
+def test_describe_image_missing_path_raises() -> None:
+    """Ensure missing image files produce a `FileNotFoundError`.
+
+    Parameters:
+        None.
+
+    Returns:
+        None
+
+    Raises:
+        AssertionError: If the missing path does not raise the expected exception.
+    """
+
+    payload = {"output": ["ignored"], "metadata": {}}
+    client = VisionClient(DummyOpenAIClient(payload))
+
+    with pytest.raises(FileNotFoundError):
+        client.describe_image(Path("nope.jpg"))

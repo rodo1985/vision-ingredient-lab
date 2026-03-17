@@ -104,16 +104,21 @@ class IngredientPromptBuilder:
         if len(normalized) < self.settings.minimum_ingredients:
             raise ValueError(
                 "At least "
-                f"{self.settings.minimum_ingredients} unique ingredients are required to generate an image."
+                f"{self.settings.minimum_ingredients} unique ingredients are required "
+                "to generate an image."
             )
 
-        ingredient_phrase = ", ".join(normalized[:-1]) + f", and {normalized[-1]}" if len(normalized) > 2 else " and ".join(normalized)
+        if len(normalized) > 2:
+            ingredient_phrase = ", ".join(normalized[:-1]) + f", and {normalized[-1]}"
+        else:
+            ingredient_phrase = " and ".join(normalized)
 
         # The prompt stays deterministic so later tests and product tuning stay stable.
         return (
             "Create a visually rich food image that combines "
             f"{ingredient_phrase} into {self.settings.scene_guidance}. "
-            f"The result should feel intentional, appetizing, and grounded in {self.settings.visual_style}. "
+            "The result should feel intentional, appetizing, and grounded in "
+            f"{self.settings.visual_style}. "
             "Avoid text overlays, packaging, watermarks, and split-screen layouts."
         )
 
@@ -137,4 +142,3 @@ def build_default_prompt(ingredients: Iterable[str]) -> str:
 
     builder = IngredientPromptBuilder(settings=PromptBuilderSettings())
     return builder.build_prompt(ingredients)
-

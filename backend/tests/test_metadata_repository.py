@@ -1,143 +1,62 @@
-from __future__ import annotations
+"""Tests for the metadata CSV repository and keyword helpers."""
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
-import pytest
+from backend.app.models.metadata import MetadataRecord, serialize_keywords
+from backend.app.services.metadata_repository import MetadataCSVRepository
 
-from backend.metadata_repository import CsvMetadataRepository, MetadataRow
 
+def _build_record(filepath: str, description: str = "sample") -> MetadataRecord:
+    """Create a deterministic MetadataRecord for testing."""
 
-def _sample_row(filepath: Path, keywords: list[str] | None = None) -> MetadataRow:
-    """Create a sample metadata row for repository tests.
-
-    Parameters:
-        filepath: Path used to populate file-specific fields.
-        keywords: Optional keyword override for the sample row.
-
-    Returns:
-        MetadataRow: Test metadata row.
-
-    Raises:
-        None.
-    """
-
-    now = datetime.now(UTC).isoformat()
-    return MetadataRow(
-        filename=filepath.name,
-        filepath=str(filepath),
-        description="tasty ingredient",
-        keywords=["tomato", "basil"] if keywords is None else keywords,
-        processed_at=now,
-        last_modified=now,
+    timestamp = datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    return MetadataRecord(
+        filename=Path(filepath).name,
+        filepath=filepath,
+        description=description,
+        keywords=["tomato", "basil", "tomato"],
+        processed_at=timestamp,
+        last_modified=timestamp,
     )
 
 
-def test_initialize_creates_file(tmp_path: Path) -> None:
-    """Ensure repository initialization creates the target CSV with headers.
+def test_serialize_keywords_returns_sorted_unique() -> None:
+    """Keywords are normalized to a sorted, deduplicated JSON string."""
 
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    repo.initialize()
-    assert repo._path.exists()
-    assert repo._path.read_text().splitlines()[0].split(",")[0] == "filename"
+    serialized = serialize_keywords(["basil", "Tomato", "basil", "  ", "basil "])
+    assert serialized == "[\"Tomato\", \"basil\"]"
 
 
-def test_append_and_read_roundtrip(tmp_path: Path) -> None:
-    """Ensure a stored metadata row can be read back without data loss.
+def test_append_records_skips_duplicates(tmp_path: Path) -> None:
+    """Append honors filepath uniqueness and only writes truly new rows."""
 
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    row = _sample_row(tmp_path / "tomato.png")
-    repo.append(row)
-    stored = repo.read_all()
-    assert len(stored) == 1
-    assert stored[0].filename == "tomato.png"
-    assert stored[0].keywords == ["tomato", "basil"]
-
-
-def test_append_updates_existing_entry(tmp_path: Path) -> None:
-    """Ensure appending an existing filepath replaces the previous row.
-
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    row = _sample_row(tmp_path / "lettuce.png")
-    repo.append(row)
-    updated = MetadataRow(
-        filename="lettuce.png",
-        filepath=str(tmp_path / "lettuce.png"),
-        description="very green",
-        keywords=["lettuce"],
-        processed_at=datetime.now(UTC).isoformat(),
-        last_modified=datetime.now(UTC).isoformat(),
-    )
-    repo.append(updated)
-    entries = repo.read_all()
+    repo = MetadataCSVRepository(tmp_path / "meta.csv")
+    record = _build_record("images/tomato.png")
+    assert repo.append_records([record]) == 1
+    assert repo.append_records([record]) == 0
+    entries = repo.load_all()
     assert len(entries) == 1
-    assert entries[0].description == "very green"
-    assert entries[0].keywords == ["lettuce"]
+    assert entries[0].filepath == record.filepath
 
 
-def test_keywords_serialization_handles_empty(tmp_path: Path) -> None:
-    """Ensure empty keyword lists round-trip through the CSV representation.
+def test_upsert_record_overwrites_existing_entry(tmp_path: Path) -> None:
+    """Upsert replaces the matching filepath and preserves ordering."""
 
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    row = _sample_row(tmp_path / "cheese.png", keywords=[])
-    repo.append(row)
-    loaded = repo.read_all()
-    assert loaded[0].keywords == []
+    repo = MetadataCSVRepository(tmp_path / "meta.csv")
+    original = _build_record("images/base.png", description="first")
+    repo.append_records([original])
+    updated = _build_record("images/base.png", description="second")
+    repo.upsert_record(updated)
+    entries = repo.load_all()
+    assert len(entries) == 1
+    assert entries[0].description == "second"
 
 
-def test_read_empty_file_returns_empty(tmp_path: Path) -> None:
-    """Ensure reading a newly initialized repository returns no rows.
+def test_load_all_returns_records_in_csv(tmp_path: Path) -> None:
+    """Load all returns the records that were written to disk."""
 
-    Parameters:
-        tmp_path: Temporary directory fixture.
-
-    Returns:
-        None.
-
-    Raises:
-        None.
-    """
-
-    repo = CsvMetadataRepository(tmp_path / "meta.csv")
-    entries = repo.read_all()
-    assert entries == []
+    repo = MetadataCSVRepository(tmp_path / "meta.csv")
+    repo.append_records([_build_record("images/a.png"), _build_record("images/b.png")])
+    entries = repo.load_all()
+    assert {entry.filepath for entry in entries} == {"images/a.png", "images/b.png"}

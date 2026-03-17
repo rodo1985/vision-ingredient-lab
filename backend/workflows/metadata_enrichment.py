@@ -167,7 +167,12 @@ class MetadataEnrichmentPipeline:
         None.
 
     Example:
-        >>> MetadataEnrichmentPipeline(scanner=..., repository=..., startup_sync=..., vision_client=...)
+        >>> MetadataEnrichmentPipeline(
+        ...     scanner=...,
+        ...     repository=...,
+        ...     startup_sync=...,
+        ...     vision_client=...,
+        ... )
         MetadataEnrichmentPipeline(...)
     """
 
@@ -191,7 +196,12 @@ class MetadataEnrichmentPipeline:
             ValueError: If downstream clients reject scanned files or metadata payloads.
 
         Example:
-            >>> pipeline = MetadataEnrichmentPipeline(scanner=..., repository=..., startup_sync=..., vision_client=...)
+            >>> pipeline = MetadataEnrichmentPipeline(
+            ...     scanner=...,
+            ...     repository=...,
+            ...     startup_sync=...,
+            ...     vision_client=...,
+            ... )
             >>> pipeline.run(Path("data/images"))
             MetadataEnrichmentResult(scanned_count=0, new_file_count=0, processed_rows=[])
         """
@@ -203,7 +213,8 @@ class MetadataEnrichmentPipeline:
         processed_rows: list[MetadataRow] = []
         for file_record in new_files:
             metadata = self.vision_client.analyze_image(Path(file_record.filepath))
-            # A single timestamp source keeps the workflow deterministic in tests and traceable in logs.
+            # A single timestamp source keeps the workflow deterministic in tests
+            # and traceable in logs.
             processed_at = self.timestamp_factory()
             row = MetadataRow(
                 filename=file_record.filename,

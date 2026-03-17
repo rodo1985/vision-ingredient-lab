@@ -1,1 +1,1 @@
-"""Application-layer modules for backend startup and prompt composition."""
+"""Primary backend application package for Vision Ingredient Lab."""

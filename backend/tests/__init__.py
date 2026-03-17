@@ -1,1 +1,1 @@
-"""Test utilities for the backend stack."""
+"""Backend tests for the primary app and preserved legacy stack."""

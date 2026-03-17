@@ -69,7 +69,10 @@ class ImageScanner:
             <...ImageScanner object...>
         """
 
-        self._extensions = {extension.lower() for extension in (supported_extensions or SUPPORTED_EXTENSIONS)}
+        self._extensions = {
+            extension.lower()
+            for extension in (supported_extensions or SUPPORTED_EXTENSIONS)
+        }
 
     def scan_folder(self, root: Path) -> list[ImageFileRecord]:
         """Scan a directory recursively and return deterministic image file records.

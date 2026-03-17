@@ -40,10 +40,7 @@ describe("App integration", () => {
           JSON.stringify({
             prompt: "Create a tomato and basil poster",
             image_url: "https://example.com/poster.png",
-            metadata: {
-              description: "A vibrant tomato and basil composition",
-              keywords: ["tomato", "basil"],
-            },
+            model: "gpt-image-1",
           }),
           { status: 200 },
         ),
@@ -63,13 +60,13 @@ describe("App integration", () => {
       expect(screen.getByRole("img")).toHaveAttribute("src", "https://example.com/poster.png");
     });
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/metadata/", { method: "GET" });
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/generation", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/images", { method: "GET" });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ingredients: ["Tomato", "Basil"] }),
+      body: JSON.stringify({ selected_ingredients: ["Tomato", "Basil"] }),
     });
-    expect(screen.getByText(/vibrant tomato and basil composition/i)).toBeInTheDocument();
+    expect(screen.getByText(/prompt: create a tomato and basil poster/i)).toBeInTheDocument();
   });
 
   it("renders a generation error when the backend request fails", async () => {
