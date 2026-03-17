@@ -30,6 +30,10 @@ export function IngredientSearchPanel({
   searchStatus,
   searchError,
 }: IngredientSearchPanelProps) {
+  const describedBy = searchError
+    ? "ingredient-query-help ingredient-query-error"
+    : "ingredient-query-help";
+
   return (
     <section className="search-panel" aria-label="Ingredient search">
       <div className="search-panel__header">
@@ -49,18 +53,28 @@ export function IngredientSearchPanel({
           type="search"
           value={query}
           placeholder="Try tomato, mozzarella, basil, dough..."
+          aria-describedby={describedBy}
+          aria-invalid={searchError ? "true" : "false"}
           onChange={(event) => onQueryChange(event.target.value)}
         />
       </label>
 
-      <div className="search-panel__status" aria-live="polite">
+      <p className="search-panel__hint" id="ingredient-query-help">
+        Search updates automatically after a short pause so typing still feels smooth.
+      </p>
+
+      <div className="search-panel__status" aria-live="polite" aria-atomic="true">
         <p>
           <strong>{resultCount}</strong> result{resultCount === 1 ? "" : "s"} loaded
         </p>
         <p className="search-panel__status-pill">{formatSearchStatus(searchStatus)}</p>
       </div>
 
-      {searchError ? <p className="search-panel__error">{searchError}</p> : null}
+      {searchError ? (
+        <p className="search-panel__error" id="ingredient-query-error" role="alert">
+          {searchError}
+        </p>
+      ) : null}
     </section>
   );
 }

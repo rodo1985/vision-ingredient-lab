@@ -26,6 +26,9 @@ export function GenerateImagePanel({
       ? selectedIngredients.map((ingredient) => ingredient.name).join(", ")
       : "No ingredients selected yet.";
   const disabled = !hasEnoughIngredients || generationStatus === "loading";
+  const describedBy = hasEnoughIngredients
+    ? "generate-panel-summary"
+    : "generate-panel-summary generate-panel-validation";
 
   return (
     <section className="generate-panel">
@@ -39,7 +42,7 @@ export function GenerateImagePanel({
         </p>
       </div>
 
-      <div className="generate-panel__summary" aria-live="polite">
+      <div className="generate-panel__summary" id="generate-panel-summary" aria-live="polite">
         <span className="generate-panel__summary-label">Ingredients:</span>
         {summary}
       </div>
@@ -48,13 +51,16 @@ export function GenerateImagePanel({
         type="button"
         className="generate-panel__button"
         disabled={disabled}
+        aria-describedby={describedBy}
         onClick={onGenerate}
       >
         {LABELS[generationStatus]}
       </button>
 
       {!hasEnoughIngredients && (
-        <p className="generate-panel__validation">You need at least two ingredients.</p>
+        <p className="generate-panel__validation" id="generate-panel-validation">
+          You need at least two ingredients.
+        </p>
       )}
     </section>
   );

@@ -18,7 +18,7 @@ export function GeneratedResultPanel({
 }: GeneratedResultPanelProps) {
   if (generationStatus === "loading") {
     return (
-      <section className="generated-result" role="status">
+      <section className="generated-result" role="status" aria-live="polite" aria-busy="true">
         <p className="generated-result__status">Creating a new ingredient-inspired image…</p>
       </section>
     );
@@ -26,7 +26,7 @@ export function GeneratedResultPanel({
 
   if (generationStatus === "error") {
     return (
-      <section className="generated-result generated-result--error" role="alert">
+      <section className="generated-result generated-result--error" role="alert" aria-live="assertive">
         <p>{generationError ?? "Something went wrong while generating the artwork."}</p>
       </section>
     );
@@ -60,7 +60,7 @@ export function GeneratedResultPanel({
   }
 
   return (
-    <section className="generated-result" role="status">
+    <section className="generated-result" role="status" aria-live="polite">
       <p className="generated-result__status">
         Generated artwork will appear here once you select a few ingredients.
       </p>

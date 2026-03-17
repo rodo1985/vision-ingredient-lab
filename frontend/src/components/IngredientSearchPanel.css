@@ -49,6 +49,12 @@
   outline-offset: 2px;
 }
 
+.search-panel__hint {
+  margin: -0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .search-panel__status {
   display: flex;
   flex-wrap: wrap;

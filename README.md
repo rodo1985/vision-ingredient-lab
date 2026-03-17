@@ -83,6 +83,7 @@ Set this optional environment variable before running frontend commands:
 - `frontend/src/test`: Frontend test setup and app-level tests.
 - `docs`: Implementation plans and project notes.
 - `docs/backend-api-guide.md`: Quick reference for running and testing the FastAPI endpoints.
+- `docs/frontend-guide.md`: Frontend architecture, commands, and flow reference.
 
 ## API surface
 - `GET /health`: Basic health check endpoint.

@@ -3,9 +3,15 @@
 ## Document Metadata
 - Project: Vision Ingredient Lab (Frontend)
 - Jira Epic: `AIIP-44` ([vision-ingredient-lab-frontend](https://newyuinc.atlassian.net/browse/AIIP-44))
-- Plan version: 1.0
+- Plan version: 1.1
 - Created: March 17, 2026
 - Owner: Frontend team
+
+## Progress Snapshot
+- Wave 1 completed in commit `51d4e47`
+- Wave 2 completed in commit `c085374`
+- Wave 3 completed in commit `6ecf163`
+- Wave 4 is focused on accessibility polish, broader frontend integration coverage, and contributor-facing docs
 
 ## 1. Objective
 Build a React frontend that allows users to:
@@ -147,8 +153,13 @@ A Jira task is considered done when all conditions below are met:
 - End of each wave: Demo completed flow and validate exit criteria.
 - Before close of Epic: Ensure `AIIP-55` and `AIIP-56` are complete and verified.
 
-## 12. Current Repository Note (as of March 17, 2026)
-The `frontend` directory currently does not contain a visible package manifest (`package.json`) in this workspace snapshot. `AIIP-45` should explicitly include establishing or restoring the full React project manifest and scripts so the documented run/test/build workflow is executable.
+## 12. Current Repository Note (updated March 17, 2026)
+The frontend now includes a complete Vite + React + Vitest setup with:
+- `package.json` and `package-lock.json`
+- documented install, run, test, and build commands
+- shared reducer/context state
+- implemented search, selection, and generation flows
+- responsive layout support across the main panels
 
 ---
 

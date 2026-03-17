@@ -48,7 +48,7 @@ export function SearchResultsGrid({
   }
 
   return (
-    <div className="search-results__grid" role="list">
+    <div className="search-results__grid" role="list" aria-label="Ingredient results">
       {results.map((ingredient) => {
         const isSelected = selectedIds.includes(ingredient.id);
         return (
@@ -69,6 +69,7 @@ export function SearchResultsGrid({
               className={`search-results__select ${isSelected ? "search-results__select--selected" : ""}`}
               onClick={() => onSelect(ingredient)}
               disabled={isSelected}
+              aria-pressed={isSelected}
             >
               {isSelected ? "Selected" : "Add"}
             </button>
