@@ -67,12 +67,15 @@ Set these environment variables before running backend commands:
 - `backend/workflows`: Multi-step orchestration such as metadata enrichment.
 - `backend/tests`: Backend tests.
 - `docs`: Implementation plans and project notes.
+- `docs/backend-api-guide.md`: Quick reference for running and testing the FastAPI endpoints.
 
 ## API surface
 - `GET /health`: Basic health check endpoint.
 - `GET /api/metadata/`: List persisted metadata rows.
-- `GET /api/metadata/search?q=tomato`: Search metadata by keyword or description.
+- `GET /api/metadata/search?q=<term>`: Search metadata by keyword or description.
 - `POST /api/generation`: Generate an image from selected ingredients.
+
+Refer to [backend API guide](docs/backend-api-guide.md) for more detail on running the API server and payload requirements.
 
 ## Contributing / Development notes
 - Prefer small, well-named modules and explicit control flow.
