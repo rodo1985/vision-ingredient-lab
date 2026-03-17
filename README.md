@@ -28,7 +28,8 @@ Vision Ingredient Lab is a toy full-stack application for exploring ingredient i
    `uv sync --dev`
 
 ### Frontend
-The frontend project structure exists conceptually, but the first frontend implementation task is still responsible for restoring or creating the package manifest and scripts in this worktree.
+1. Install frontend dependencies:
+   `cd frontend && npm install`
 
 ## How to run
 ### Backend
@@ -44,7 +45,12 @@ The frontend project structure exists conceptually, but the first frontend imple
   `uv run pytest backend/tests/test_generation_api.py`
 
 ### Frontend
-- Frontend run/build/test commands will be added as part of the frontend bootstrap task once the React manifest is present in the repo.
+- Start the React frontend locally:
+  `cd frontend && npm run dev`
+- Run frontend tests:
+  `cd frontend && npm test`
+- Build the frontend:
+  `cd frontend && npm run build`
 
 ## Configuration
 Set these environment variables before running backend commands:
@@ -56,6 +62,10 @@ Set these environment variables before running backend commands:
 - `OPENAI_IMAGE_MODEL`: Optional image generation model name. Default: `gpt-image-1`
 - `OPENAI_MAX_RETRIES`: Optional retry count for OpenAI calls. Default: `2`
 
+Set this optional environment variable before running frontend commands:
+
+- `VITE_BACKEND_BASE_URL`: Optional frontend base URL for backend API requests. Default: `/api`
+
 ## Project structure
 - `backend/app`: Backend startup, config, and prompt-building modules.
 - `backend/clients`: External service adapters such as the OpenAI vision client.
@@ -66,6 +76,10 @@ Set these environment variables before running backend commands:
 - `backend/services`: Startup synchronization services.
 - `backend/workflows`: Multi-step orchestration such as metadata enrichment.
 - `backend/tests`: Backend tests.
+- `frontend/src/components`: Shell and presentational React components.
+- `frontend/src/lib`: Shared frontend utilities such as the API client.
+- `frontend/src/state`: Shared frontend reducer/context state.
+- `frontend/src/test`: Frontend test setup and app-level tests.
 - `docs`: Implementation plans and project notes.
 - `docs/backend-api-guide.md`: Quick reference for running and testing the FastAPI endpoints.
 
