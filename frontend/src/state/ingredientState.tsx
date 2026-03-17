@@ -3,6 +3,9 @@ import { ReactNode, createContext, useContext, useReducer } from "react";
 /** Supported lifecycle states for the creative image generation flow. */
 export type GenerationStatus = "idle" | "loading" | "success" | "error";
 
+/** Supported lifecycle states for the ingredient search flow. */
+export type SearchStatus = "idle" | "loading" | "success" | "error";
+
 /** Search result row adapted for frontend selection and rendering. */
 export interface IngredientResult {
   id: string;
@@ -25,7 +28,9 @@ export interface GeneratedResult {
 export interface IngredientState {
   query: string;
   results: IngredientResult[];
-  selectedIds: string[];
+  selectedIngredients: IngredientResult[];
+  searchStatus: SearchStatus;
+  searchError: string | null;
   generationStatus: GenerationStatus;
   generatedResult: GeneratedResult | null;
 }
@@ -33,7 +38,9 @@ export interface IngredientState {
 export const initialIngredientState: IngredientState = {
   query: "",
   results: [],
-  selectedIds: [],
+  selectedIngredients: [],
+  searchStatus: "idle",
+  searchError: null,
   generationStatus: "idle",
   generatedResult: null,
 };
@@ -42,6 +49,8 @@ export const initialIngredientState: IngredientState = {
 export type IngredientAction =
   | { type: "setQuery"; payload: string }
   | { type: "setResults"; payload: IngredientResult[] }
+  | { type: "setSearchStatus"; payload: SearchStatus }
+  | { type: "setSearchError"; payload: string | null }
   | { type: "addIngredient"; payload: IngredientResult }
   | { type: "removeIngredient"; payload: string }
   | { type: "clearSelection" }
@@ -68,19 +77,28 @@ export function ingredientReducer(
       return { ...state, query: action.payload };
     case "setResults":
       return { ...state, results: [...action.payload] };
+    case "setSearchStatus":
+      return { ...state, searchStatus: action.payload };
+    case "setSearchError":
+      return { ...state, searchError: action.payload };
     case "addIngredient": {
-      if (state.selectedIds.includes(action.payload.id)) {
+      if (state.selectedIngredients.some((ingredient) => ingredient.id === action.payload.id)) {
         return state;
       }
-      return { ...state, selectedIds: [...state.selectedIds, action.payload.id] };
+      return {
+        ...state,
+        selectedIngredients: [...state.selectedIngredients, action.payload],
+      };
     }
     case "removeIngredient":
       return {
         ...state,
-        selectedIds: state.selectedIds.filter((id) => id !== action.payload),
+        selectedIngredients: state.selectedIngredients.filter(
+          (ingredient) => ingredient.id !== action.payload,
+        ),
       };
     case "clearSelection":
-      return { ...state, selectedIds: [] };
+      return { ...state, selectedIngredients: [] };
     case "setGenerationStatus":
       return { ...state, generationStatus: action.payload };
     case "setGeneratedResult":

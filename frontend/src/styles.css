@@ -205,6 +205,12 @@ select {
   box-shadow: 0 10px 30px rgba(61, 49, 34, 0.08);
 }
 
+.workspace-panel--stacked {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+}
+
 .workspace-panel__glow {
   position: absolute;
   inset: auto auto -20% -10%;

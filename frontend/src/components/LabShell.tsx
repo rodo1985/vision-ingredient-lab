@@ -1,4 +1,12 @@
-import type { GenerationStatus } from "../state/ingredientState";
+import type {
+  GenerationStatus,
+  IngredientResult,
+  SearchStatus,
+} from "../state/ingredientState";
+
+import { IngredientSearchPanel } from "./IngredientSearchPanel";
+import { SearchResultsGrid } from "./SearchResultsGrid";
+import { SelectedIngredientsPanel } from "./SelectedIngredientsPanel";
 
 type InsightCard = {
   label: string;
@@ -40,6 +48,15 @@ const upcomingPanels = [
 ];
 
 type LabShellProps = {
+  query: string;
+  onQueryChange: (query: string) => void;
+  searchStatus: SearchStatus;
+  searchError: string | null;
+  results: IngredientResult[];
+  selectedIngredients: IngredientResult[];
+  onSelectIngredient: (ingredient: IngredientResult) => void;
+  onRemoveIngredient: (ingredientId: string) => void;
+  onClearSelection: () => void;
   selectedCount: number;
   resultCount: number;
   generationStatus: GenerationStatus;
@@ -57,10 +74,21 @@ type LabShellProps = {
  *   JSX.Element: Layout scaffold for the ingredient lab experience.
  */
 export function LabShell({
+  query,
+  onQueryChange,
+  searchStatus,
+  searchError,
+  results,
+  selectedIngredients,
+  onSelectIngredient,
+  onRemoveIngredient,
+  onClearSelection,
   selectedCount,
   resultCount,
   generationStatus,
 }: LabShellProps) {
+  const selectedIds = selectedIngredients.map((ingredient) => ingredient.id);
+
   return (
     <main className="app-shell">
       <section className="hero">
@@ -103,14 +131,39 @@ export function LabShell({
       </section>
 
       <section className="workspace" aria-label="Application workspace preview">
-        {upcomingPanels.map((panel) => (
-          <article className="workspace-panel" key={panel.title}>
-            <div className="workspace-panel__glow" />
-            <p className="workspace-panel__kicker">Planned surface</p>
-            <h2>{panel.title}</h2>
-            <p>{panel.copy}</p>
-          </article>
-        ))}
+        <article className="workspace-panel workspace-panel--stacked">
+          <div className="workspace-panel__glow" />
+          <IngredientSearchPanel
+            query={query}
+            onQueryChange={onQueryChange}
+            resultCount={resultCount}
+            searchStatus={searchStatus}
+            searchError={searchError}
+          />
+          <SearchResultsGrid
+            results={results}
+            selectedIds={selectedIds}
+            isLoading={searchStatus === "loading"}
+            errorMessage={searchStatus === "error" ? searchError : null}
+            onSelect={onSelectIngredient}
+          />
+        </article>
+
+        <article className="workspace-panel workspace-panel--stacked">
+          <div className="workspace-panel__glow" />
+          <SelectedIngredientsPanel
+            selectedIngredients={selectedIngredients}
+            onRemove={onRemoveIngredient}
+            onClear={onClearSelection}
+          />
+        </article>
+
+        <article className="workspace-panel" key={upcomingPanels[2].title}>
+          <div className="workspace-panel__glow" />
+          <p className="workspace-panel__kicker">Planned surface</p>
+          <h2>{upcomingPanels[2].title}</h2>
+          <p>{upcomingPanels[2].copy}</p>
+        </article>
       </section>
     </main>
   );

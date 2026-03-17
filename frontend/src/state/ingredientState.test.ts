@@ -47,19 +47,41 @@ describe("ingredientReducer", () => {
       type: "addIngredient",
       payload: sampleResult,
     });
-    expect(second.selectedIds).toEqual(["tomato"]);
+    expect(second.selectedIngredients).toEqual([sampleResult]);
   });
 
   it("removes ingredients", () => {
-    const state: IngredientState = { ...initialIngredientState, selectedIds: ["tomato"] };
+    const state: IngredientState = {
+      ...initialIngredientState,
+      selectedIngredients: [sampleResult],
+    };
     const next = ingredientReducer(state, { type: "removeIngredient", payload: "tomato" });
-    expect(next.selectedIds).toEqual([]);
+    expect(next.selectedIngredients).toEqual([]);
   });
 
   it("clears selection", () => {
-    const state: IngredientState = { ...initialIngredientState, selectedIds: ["tomato"] };
+    const state: IngredientState = {
+      ...initialIngredientState,
+      selectedIngredients: [sampleResult],
+    };
     const next = ingredientReducer(state, { type: "clearSelection" });
-    expect(next.selectedIds).toEqual([]);
+    expect(next.selectedIngredients).toEqual([]);
+  });
+
+  it("tracks search status", () => {
+    const next = ingredientReducer(initialIngredientState, {
+      type: "setSearchStatus",
+      payload: "loading",
+    });
+    expect(next.searchStatus).toBe("loading");
+  });
+
+  it("stores search errors", () => {
+    const next = ingredientReducer(initialIngredientState, {
+      type: "setSearchError",
+      payload: "Backend unavailable",
+    });
+    expect(next.searchError).toBe("Backend unavailable");
   });
 
   it("tracks generation status", () => {
